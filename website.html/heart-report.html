@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StatusCope | Heart Mirror & Control</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f0f4f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #008cbf;
+      margin-bottom: 5px;
+    }
+    h3 {
+      color: #444;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    canvas {
+      background: #000;
+      border: 3px solid #008cbf;
+      border-radius: 8px;
+    }
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      background-color: #008cbf;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0077a8;
+    }
+    button i {
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>StatusCope</h1>
+  <h3>Heart Report Readings</h3>
+  <canvas id="waveform" width="480" height="320"></canvas>
+
+  <div class="buttons">
+    <button id="toggleTransmission"><i class="fas fa-microchip"></i> Control Transmission</button>
+    <button onclick="location.href='patient-dashboard.html'"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBXvZIyjUY_ko1t-xQATxawFfNR-Fa5qEY",
+        authDomain: "statuscope-10086.firebaseapp.com",
+        databaseURL: "https://statuscope-10086-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "statuscope-10086",
+        storageBucket: "statuscope-10086.firebasestorage.app",
+        messagingSenderId: "289714922875",
+        appId: "1:289714922875:web:65c833189e3044ee20c9de",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const canvas = document.getElementById('waveform');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let x = 0;
+    let prevY = canvas.height / 2;
+
+    const dataRef = ref(db, 'esp32/data');
+
+    onValue(dataRef, (snapshot) => {
+      const value = parseFloat(snapshot.val());
+      const y = map(value, 400, 900, canvas.height - 20, 20);
+      ctx.strokeStyle = "#00ff99";
+      ctx.beginPath();
+      ctx.moveTo(x, prevY);
+      ctx.lineTo(x + 1, y);
+      ctx.stroke();
+      prevY = y;
+      x += 1;
+
+      if (x >= canvas.width) {
+        x = 0;
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+
+    function map(val, in_min, in_max, out_min, out_max) {
+      return (val - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    }
+
+    const toggleBtn = document.getElementById("toggleTransmission");
+    let isOn = false;
+    toggleBtn.addEventListener("click", () => {
+      isOn = !isOn;
+      set(ref(db, 'esp32/control'), isOn ? "ON" : "OFF");
+      toggleBtn.innerHTML = isOn
+        ? '<i class="fas fa-microchip"></i> Stop Transmission'
+        : '<i class="fas fa-microchip"></i> Start Transmission';
+    });
+  </script>
+</body>
+</html>
